@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InternMap | Trouvez votre stage ou alternance</title>
+  <meta name="description"
+    content="InternMap - Découvrez les meilleures entreprises qui recrutent des stagiaires et alternants près de chez vous." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Écran d'accueil pour la sélection de la ville -->
+  <section id="landing-page">
+    <div class="landing-bg">
+      <img src="Image/carte.png" alt="" class="bg-carte" />
+      <div class="bg-overlay"></div>
+    </div>
+
+    <div class="landing-content">
+      <div class="logo-area">
+        <h1>InternMap</h1>
+        <p class="tagline">Trouvez votre stage ou alternance idéale</p>
+      </div>
+
+      <div class="city-selection">
+        <h2>Choisissez votre ville</h2>
+        <p class="city-hint">D'autres villes arrivent bientôt !</p>
+
+        <div class="cities-grid">
+                    <div class="city-card available" id="city-paris" onclick="choisirVille('paris')">
+            <div class="city-card-glow"></div>
+            <div class="city-image-wrapper">
+              <img src="Image/paris.png" alt="Paris" class="city-image" />
+            </div>
+            <div class="city-info">
+              <span class="city-name">Paris</span>
+              <span class="city-badge available-badge">Disponible</span>
+            </div>
+            <div class="city-count" id="paris-count">Chargement...</div>
+            <div class="city-arrow">→</div>
+          </div>
+
+                    <div class="city-card available" id="city-lyon" onclick="choisirVille('lyon')">
+            <div class="city-card-glow"></div>
+            <div class="city-image-wrapper">
+              <img src="Image/lyon.png" alt="Lyon" class="city-image" />
+            </div>
+            <div class="city-info">
+              <span class="city-name">Lyon</span>
+              <span class="city-badge available-badge">Disponible</span>
+            </div>
+            <div class="city-count" id="lyon-count">Chargement...</div>
+            <div class="city-arrow">→</div>
+          </div>
+
+                    <div class="city-card available" id="city-marseille" onclick="choisirVille('marseille')">
+            <div class="city-card-glow"></div>
+            <div class="city-image-wrapper">
+              <img src="Image/marseille.png" alt="Marseille" class="city-image" />
+            </div>
+            <div class="city-info">
+              <span class="city-name">Marseille</span>
+              <span class="city-badge available-badge">Disponible</span>
+            </div>
+            <div class="city-count" id="marseille-count">Chargement...</div>
+            <div class="city-arrow">→</div>
+          </div>
+
+                    <div class="city-card available" id="city-toulouse" onclick="choisirVille('toulouse')">
+            <div class="city-card-glow"></div>
+            <div class="city-image-wrapper">
+              <img src="Image/toulouse.avif" alt="Toulouse" class="city-image" />
+            </div>
+            <div class="city-info">
+              <span class="city-name">Toulouse</span>
+              <span class="city-badge available-badge">Disponible</span>
+            </div>
+            <div class="city-count" id="toulouse-count">Chargement...</div>
+            <div class="city-arrow">→</div>
+          </div>
+
+                  </div>
+  </section>
+
+  <!-- Interface principale avec carte et filtres -->
+  <main id="app-content" style="display: none">
+    <!-- Panneau latéral des filtres -->
+    <aside id="filter-panel">
+      <div class="filter-header">
+        <button id="back-btn" onclick="retourAccueil()">
+          <span>←</span> Retour
+        </button>
+        <div class="filter-title">
+          <span class="filter-city-icon"></span>
+          <span>Paris</span>
+        </div>
+      </div>
+
+      <div class="filter-body">
+                <div class="filter-section">
+          <label class="filter-label">🔍 Recherche</label>
+          <input type="text" id="filter-nom" placeholder="Nom d'entreprise..." oninput="appliquerFiltres()" />
+        </div>
+
+                <div class="filter-section">
+          <label class="filter-label">📍 Adresse de référence</label>
+          <div class="address-search-wrapper">
+            <input type="text" id="filter-adresse" placeholder="Ex: 10 rue de Rivoli, Paris..." autocomplete="off" />
+            <button id="clear-address-btn" class="clear-address-btn" onclick="effacerAdresse()" style="display:none;" title="Effacer">✕</button>
+            <div id="adresse-suggestions" class="adresse-suggestions"></div>
+          </div>
+        </div>
+
+                <div class="filter-section" id="perimeter-section" style="display:none;">
+          <label class="filter-label">📏 Périmètre — <span id="perimeter-value">500 m</span></label>
+          <div class="score-range-container">
+            <input type="range" id="filter-perimeter" min="100" max="3000" value="500" step="50" oninput="updatePerimetre()" />
+          </div>
+          <div class="score-labels">
+            <span>100 m</span>
+            <span>1.5 km</span>
+            <span>3 km</span>
+          </div>
+        </div>
+
+                <div class="filter-section">
+          <label class="filter-label"> Domaine</label>
+          <div id="domaines-checkboxes" class="domain-chips">
+                      </div>
+        </div>
+
+                <div class="filter-section">
+          <label class="filter-label"> Score d'embauche minimum</label>
+          <div class="score-range-container">
+            <input type="range" id="filter-score" min="0" max="10" value="0" step="1" oninput="
+                  updateScoreDisplay();
+                  appliquerFiltres();
+                " />
+            <div class="score-display">
+              <span id="score-value">0</span>
+              <span class="score-max">/ 10</span>
+            </div>
+          </div>
+          <div class="score-labels">
+            <span>0</span>
+            <span>5</span>
+            <span>10</span>
+          </div>
+        </div>
+
+                <div class="filter-stats">
+          <span id="result-count">0</span> entreprise(s) trouvée(s)
+        </div>
+
+                <button class="reset-btn" onclick="resetFiltres()">
+          Réinitialiser les filtres
+        </button>
+
+                <button id="export-btn" class="export-btn" onclick="exportSelection()" style="display: none;">
+          Exporter la sélection (0)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Conteneur de la carte Leaflet -->
+    <div id="map"></div>
+
+    <!-- Bouton mobile pour afficher/masquer les filtres -->
+    <button id="toggle-filter" onclick="toggleFilterPanel()">
+      <span id="toggle-icon">☰</span> Filtres
+    </button>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
